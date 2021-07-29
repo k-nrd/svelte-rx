@@ -1,1 +1,66 @@
-import{getContext,setContext}from"svelte";import{writable,derived,get}from"svelte/store";export function isObjNotProp(e){return"object"==typeof e&&null!==e}export function hasProp(e,t){return t in e}const MODELKEY="undefined"!=typeof Symbol?Symbol("svelte-tea/model"):"svelte-tea/model";export const createModel=e=>t=>{const{subscribe:o,update:r}=writable(t);return{subscribe:o,dispatch:t=>{r(e(t))}}};export const withMiddleware=(...e)=>t=>o=>{const r=createModel(t)(o);if(!Array.isArray(e)||0===e.length)return r;let n=e=>{throw new Error("Dispatching while constructing your middleware is not allowed. Other middleware would not be applied to this dispatch.")};const s={getState:()=>get(r),dispatch:e=>n(e)};return n=e.map((e=>e(s))).reduce(((e,t)=>t(e)),r.dispatch),Object.assign(Object.assign({},r),{dispatch:n})};export const provideModel=e=>{setContext(MODELKEY,e)};export const useModel=(...e)=>{var t;const o={},r=e.map((e=>e.replace(/\s+/g,""))).map((e=>e.toLowerCase())).join(":");if(null!=o[r])return o[r];const n=getContext(MODELKEY);if(null==n)throw new Error('Context not found. Please ensure you provide the model using "provideModel" function');const{subscribe:s}=derived(n,(t=>e.reduce(((e,t)=>{if(isObjNotProp(e)&&hasProp(e,t))return e[t];throw new Error(`Model or node of model ${JSON.stringify(e)} does not have property ${t}`)}),t))),i={[null!==(t=e[e.length-1])&&void 0!==t?t:"model"]:{subscribe:s},send:n.dispatch};return o[r]=i,i};const prinf=(e,t,o)=>{console.group(t,"@"+(new Date).toISOString()),console.log("%cprev state","color:#9E9E9E",e),console.log("%caction","color:#2196F3",t),console.log("%cnext state","color:#4CAF50",o),console.groupEnd()};export const logger=({getState:e})=>t=>o=>{const r=e(),n=t(o);return prinf(r,o.type,e()),n};
+import { from, Subject, isObservable } from "rxjs";
+import { switchMap, scan, distinctUntilChanged, startWith } from "rxjs/operators";
+import { getContext, setContext } from "svelte";
+/* Reserved Constant */
+const MODELKEY = typeof Symbol !== 'undefined'
+    ? Symbol('@@svelte-rxflux/store')
+    : '@@svelte-rxflux/store';
+/* API */
+export const createStore = (reducer, init) => {
+    const action$ = new Subject();
+    const state$ = action$.pipe(switchMap((action) => (isObservable(action) ? action : from([action]))), scan(reducer, init), startWith(init), distinctUntilChanged());
+    const dispatch = (action) => {
+        action$.next(action);
+    };
+    return [state$, dispatch];
+};
+export const withMiddleware = (reducer, init, ...middlewares) => {
+    const [s$, d] = createStore(reducer, init);
+    if (!Array.isArray(middlewares) || middlewares.length === 0) {
+        return [s$, d];
+    }
+    // Some trickery to make every middleware call to 'dispatch'
+    // go through the whole middleware chain again
+    let dispatch = (_msg) => {
+        throw new Error("Dispatching while constructing your middleware is not allowed. " +
+            "Other middleware would not be applied to this dispatch.");
+    };
+    const get = (state$) => {
+        let val;
+        state$.subscribe((v) => {
+            val = v;
+        });
+        return () => val;
+    };
+    const middlewareAPI = {
+        getState: get(s$),
+        dispatch: (msg) => dispatch(msg)
+    };
+    dispatch = middlewares
+        .map((middleware) => middleware(middlewareAPI))
+        .reduce((next, middleware) => middleware(next), d);
+    return [s$, dispatch];
+};
+export const provideStore = (store) => {
+    setContext(MODELKEY, store);
+};
+export const useStore = () => {
+    const store = getContext(MODELKEY);
+    if (store == null) {
+        throw new Error("Context not found. Please ensure you provide the store using the `provideStore` function or the `ProvideStore` component.");
+    }
+    return store;
+};
+const prinf = (prev, tag, next) => {
+    console.group(tag, '@' + new Date().toISOString());
+    console.log('%cprev state', 'color:#9E9E9E', prev);
+    console.log('%caction', 'color:#2196F3', tag);
+    console.log('%cnext state', 'color:#4CAF50', next);
+    console.groupEnd();
+};
+export const logger = ({ getState }) => (next) => (action) => {
+    const previous = getState();
+    const result = next(action);
+    prinf(previous, action.type, getState());
+    return result;
+};

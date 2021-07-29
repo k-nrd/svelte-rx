@@ -1,118 +1,98 @@
-import { getContext, setContext } from 'svelte'
-import { writable, derived, get } from 'svelte/store'
-import type { Readable } from 'svelte/store'
+import type { Observable } from 'rxjs'
+import { from, Subject, isObservable } from "rxjs";
+import {  switchMap,  scan,  distinctUntilChanged,  startWith} from "rxjs/operators";
+import { getContext, setContext } from "svelte";
 
 /* Types */
-export interface Message {
+export interface Action {
   readonly type: string
   readonly payload: unknown
 }
 
-export type Value<Model> = Model[keyof Model]
+export type Dispatch = (action: Action) => void
 
-export type ModelNode<Model> = Value<Model> | Model
+export type MiddlewareAPI<State> = {getState: () => State, dispatch: Dispatch}
 
-export type Dispatch = (msg: Message) => void
+export type Reducer<State> = (action: Action, state: State) => State
 
-export type ModelAPI<Model> = Readable<ModelNode<Model>> & {dispatch: Dispatch}
-
-export interface MiddlewareAPI<Model> {getState: () => ModelNode<Model>, dispatch: Dispatch}
-
-export type UpdateFunction<Model> = (msg: Message) => (model: Model) => Model
-
-export type Middleware<Model> = (model: MiddlewareAPI<Model>) => (next: Dispatch) => (msg: Message) => void
-
-/* TypeGuards */
-export function isObjNotProp<T> (x: T | T[keyof T]): x is T {
-  return typeof x === 'object' && x !== null
-}
-
-export function hasProp<T> (obj: T, x: string | number | symbol): x is keyof T {
-  return x in obj
-}
+export type Middleware<State> = (model: MiddlewareAPI<State>) => (next: Dispatch) => (action: Action) => void
 
 /* Reserved Constant */
-const MODELKEY = typeof Symbol !== 'undefined' ? Symbol('svelte-tea/model') : 'svelte-tea/model'
+const MODELKEY = typeof Symbol !== 'undefined' 
+  ? Symbol('@@svelte-rxflux/store') 
+  : '@@svelte-rxflux/store'
 
 /* API */
-export const createModel = <Model> (update: UpdateFunction<Model>) => (init: Model): ModelAPI<Model> => {
-  const { subscribe, update: updateStore } = writable(init)
+export const createStore = <S>(reducer: Reducer<S>, init: S): [Observable<S>, Dispatch] => {
+  const action$ = new Subject();
 
-  const dispatch: Dispatch = (msg) => {
-    updateStore(update(msg))
+  const state$ = action$.pipe(
+    switchMap((action: Action) => (isObservable(action) ? action : from([action]))),
+    scan(reducer, init),
+    startWith(init),
+    distinctUntilChanged()
+  );
+
+  const dispatch: Dispatch = (action) => {
+    action$.next(action);
+  };
+
+  return [state$, dispatch];
+};
+
+export const withMiddleware = <S>(reducer: Reducer<S>, init: S, ...middlewares: Middleware<S>[]) => {
+  const [s$, d] = createStore(reducer, init);
+
+  if (!Array.isArray(middlewares) || middlewares.length === 0) {
+    return [s$, d];
   }
-
-  return { subscribe, dispatch }
-}
-
-export const withMiddleware = <Model> (...middlewares: Array<Middleware<Model>>) => (update: UpdateFunction<Model>) => (init: Model): ModelAPI<Model> => {
-  const model = createModel<Model>(update)(init)
-
-  if (!Array.isArray(middlewares) || middlewares.length === 0) return model
 
   // Some trickery to make every middleware call to 'dispatch'
   // go through the whole middleware chain again
   let dispatch: Dispatch = (_msg) => {
     throw new Error(
-      'Dispatching while constructing your middleware is not allowed. ' +
-      'Other middleware would not be applied to this dispatch.',
-    )
-  }
+      "Dispatching while constructing your middleware is not allowed. " +
+        "Other middleware would not be applied to this dispatch."
+    );
+  };
 
-  const middlewareAPI: MiddlewareAPI<Model> = {
-    getState: () => get(model),
-    dispatch: (msg) => dispatch(msg),
-  }
+  const get = <S>(state$: Observable<S>) => {
+    let val: S;
+    state$.subscribe((v: S) => {
+      val = v;
+    });
+    return (): S => val;
+  };
+
+  const middlewareAPI: MiddlewareAPI<S> = {
+    getState: get<S>(s$),
+    dispatch: (msg) => dispatch(msg)
+  };
 
   dispatch = middlewares
-    .map((middleware: Middleware<Model>) => middleware(middlewareAPI))
-    .reduce((next: Dispatch, middleware: (d: Dispatch) => (m: Message) => void) => middleware(next), model.dispatch)
+    .map((middleware) => middleware(middlewareAPI))
+    .reduce((next, middleware) => middleware(next), d);
 
-  return { ...model, dispatch }
-}
+  return [s$, dispatch];
+};
 
-export const provideModel = <Model> (model: ModelAPI<Model>): void => {
-  setContext(MODELKEY, model)
-}
+export const provideStore = <S>(store: [Observable<S>, Dispatch]) => {
+  setContext(MODELKEY, store);
+};
 
-export const useModel = <Model> (...path: string[]): Record<string, Readable<ModelNode<Model>> | Dispatch> => {
-  const cache: Record<string, Record<string, Readable<ModelNode<Model>> | Dispatch>> = {}
+export const useStore = <S>(): [Observable<S>, Dispatch] => {
+  const store = getContext(MODELKEY);
 
-  const key = path
-    .map((s: string) => s.replace(/\s+/g, ''))
-    .map((s: string) => s.toLowerCase())
-    .join(':')
-
-  if (cache[key] != null) return cache[key]
-
-  const model: ModelAPI<Model> = getContext(MODELKEY)
-
-  if (model == null) {
-    throw new Error('Context not found. Please ensure you provide the model using "provideModel" function')
+  if (store == null) {
+    throw new Error(
+      "Context not found. Please ensure you provide the store using the `provideStore` function or the `ProvideStore` component."
+    );
   }
 
-  const { subscribe } = derived(
-    model,
-    ($model: ModelNode<Model>): ModelNode<Model> =>
-      path.reduce(
-        (acc: ModelNode<Model>, cur: string): ModelNode<Model> => {
-          if (isObjNotProp<Model>(acc) && hasProp(acc, cur)) return acc[cur]
-          throw new Error(`Model or node of model ${JSON.stringify(acc)} does not have property ${cur}`)
-        },
-        $model,
-      ),
-  )
+  return store;
+};
 
-  const name = path[path.length - 1] ?? 'model'
-
-  const node = { [name]: { subscribe }, send: model.dispatch }
-
-  cache[key] = node
-
-  return node
-}
-
-const prinf = <Model>(prev: Model, tag: string, next: Model): void => {
+const prinf = <S>(prev: S, tag: string, next: S): void => {
   console.group(tag, '@' + new Date().toISOString())
   console.log('%cprev state', 'color:#9E9E9E', prev)
   console.log('%caction', 'color:#2196F3', tag)
@@ -120,9 +100,9 @@ const prinf = <Model>(prev: Model, tag: string, next: Model): void => {
   console.groupEnd()
 }
 
-export const logger = <Model>({ getState }: MiddlewareAPI<Model>) => (next: (msg: Message) => Model) => (msg: Message): Model => {
+export const logger = <S>({ getState }: MiddlewareAPI<S>) => (next: (action: Action) => S) => (action: Action): S => {
   const previous = getState()
-  const result = next(msg)
-  prinf(previous, msg.type, getState())
+  const result = next(action)
+  prinf<S>(previous, action.type, getState())
   return result
 }

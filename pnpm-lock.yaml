@@ -16,14 +16,14 @@ specifiers:
   nodemon: ^2.0.7
   np: ^7.5.0
   rimraf: ^3.0.2
-  svelte: ^3.38.2
+  rxjs: ^6
   terser: ^5.6.0
   ts-jest: ^26.5.2
   ts-node: ^9.1.1
   typescript: ^4.2.2
 
 dependencies:
-  svelte: 3.38.2
+  rxjs: 6.6.7
 
 devDependencies:
   '@types/jest': 26.0.20
@@ -5386,7 +5386,6 @@ packages:
     engines: {npm: '>=2.0.0'}
     dependencies:
       tslib: 1.14.1
-    dev: true
 
   /safe-buffer/5.1.2:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
@@ -5845,11 +5844,6 @@ packages:
       supports-color: 7.2.0
     dev: true
 
-  /svelte/3.38.2:
-    resolution: {integrity: sha512-q5Dq0/QHh4BLJyEVWGe7Cej5NWs040LWjMbicBGZ+3qpFWJ1YObRmUDZKbbovddLC9WW7THTj3kYbTOFmU9fbg==}
-    engines: {node: '>= 8'}
-    dev: false
-
   /symbol-observable/1.2.0:
     resolution: {integrity: sha512-e900nM8RRtGhlV36KGEU9k65K3mPb1WV70OdjfxlG2EAuM1noi/E/BaW/uMhL7bPEssK8QV57vN3esixjUvcXQ==}
     engines: {node: '>=0.10.0'}
@@ -6062,7 +6056,6 @@ packages:
 
   /tslib/1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
-    dev: true
 
   /tsutils/3.20.0_typescript@4.2.2:
     resolution: {integrity: sha512-RYbuQuvkhuqVeXweWT3tJLKOEJ/UUw9GjNEZGWdrLLlM+611o1gwLHBpxoFJKKl25fLprp2eVthtKs5JOrNeXg==}

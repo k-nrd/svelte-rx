@@ -23,8 +23,17 @@
       "pre-push": "pnpm run test && pnpm run fix && pnpm run lint"
     }
   },
-  "keywords": [],
-  "author": "Yungas@yungas",
+  "keywords": [
+    "svelte", 
+    "flux", 
+    "rxjs", 
+    "store", 
+    "reactive", 
+    "state management",
+    "hooks",
+    "redux"
+  ],
+  "author": "Gustavo Konrad",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.20",
@@ -51,6 +60,6 @@
     "svelte": "^3.35.0"
   },
   "dependencies": {
-    "svelte": "^3.38.2"
+    "rxjs": "^6"
   }
 }
