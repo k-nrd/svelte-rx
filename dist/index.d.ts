@@ -4,14 +4,16 @@ export interface Action {
     readonly payload: unknown;
 }
 export declare type Dispatch = (action: Action) => void;
-export declare type MiddlewareAPI<State> = {
+export declare type Reducer<State> = (state: State, action: Action) => State;
+export declare type UseStore<State> = [Observable<State>, Dispatch];
+export declare type ActionReceived = Observable<Action> | Action;
+export interface MiddlewareAPI<State> {
     getState: () => State;
     dispatch: Dispatch;
-};
-export declare type Reducer<State> = (action: Action, state: State) => State;
-export declare type Middleware<State> = (model: MiddlewareAPI<State>) => (next: Dispatch) => (action: Action) => void;
-export declare const createStore: <S>(reducer: Reducer<S>, init: S) => [Observable<S>, Dispatch];
-export declare const withMiddleware: <S>(reducer: Reducer<S>, init: S, ...middlewares: Middleware<S>[]) => (Dispatch | Observable<S>)[];
-export declare const provideStore: <S>(store: [Observable<S>, Dispatch]) => void;
-export declare const useStore: <S>() => [Observable<S>, Dispatch];
+}
+export declare type Middleware<State> = (m: MiddlewareAPI<State>) => (next: Dispatch) => (action: Action) => void;
+export declare const createStore: <S>(reducer: Reducer<S>, init: S) => UseStore<S>;
+export declare const withMiddleware: <S>(reducer: Reducer<S>, init: S) => (...middlewares: Middleware<S>[]) => UseStore<S>;
+export declare const provideStore: <S>(store: UseStore<S>) => void;
+export declare const useStore: <S>() => UseStore<S>;
 export declare const logger: <S>({ getState }: MiddlewareAPI<S>) => (next: (action: Action) => S) => (action: Action) => S;

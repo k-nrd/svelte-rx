@@ -1,7 +1,7 @@
 import type { Observable } from 'rxjs'
-import { from, Subject, isObservable } from "rxjs";
-import {  switchMap,  scan,  distinctUntilChanged,  startWith} from "rxjs/operators";
-import { getContext, setContext } from "svelte";
+import { of, Subject, isObservable } from 'rxjs'
+import { switchMap, scan, distinctUntilChanged, startWith } from 'rxjs/operators'
+import { getContext, setContext } from 'svelte'
 
 /* Types */
 export interface Action {
@@ -11,86 +11,98 @@ export interface Action {
 
 export type Dispatch = (action: Action) => void
 
-export type MiddlewareAPI<State> = {getState: () => State, dispatch: Dispatch}
+export type Reducer<State> = (state: State, action: Action) => State
 
-export type Reducer<State> = (action: Action, state: State) => State
+export type UseStore<State> = [Observable<State>, Dispatch]
 
-export type Middleware<State> = (model: MiddlewareAPI<State>) => (next: Dispatch) => (action: Action) => void
+export type ActionReceived = Observable<Action> | Action
+
+export interface MiddlewareAPI<State> {
+  getState: () => State
+  dispatch: Dispatch
+}
+
+export type Middleware<State> = (m: MiddlewareAPI<State>) => (next: Dispatch) => (action: Action) => void
 
 /* Reserved Constant */
-const MODELKEY = typeof Symbol !== 'undefined' 
-  ? Symbol('@@svelte-rxflux/store') 
+const MODELKEY = typeof Symbol !== 'undefined'
+  ? Symbol('@@svelte-rxflux/store')
   : '@@svelte-rxflux/store'
 
 /* API */
-export const createStore = <S>(reducer: Reducer<S>, init: S): [Observable<S>, Dispatch] => {
-  const action$ = new Subject();
+export const createStore = <S>(reducer: Reducer<S>, init: S): UseStore<S> => {
+  const action$ = new Subject<Action>()
+
+  const intoObservable = (action: ActionReceived): Observable<Action> =>
+    isObservable(action)
+      ? action
+      : of(action)
 
   const state$ = action$.pipe(
-    switchMap((action: Action) => (isObservable(action) ? action : from([action]))),
+    switchMap(intoObservable),
     scan(reducer, init),
     startWith(init),
-    distinctUntilChanged()
-  );
+    distinctUntilChanged(),
+  )
 
   const dispatch: Dispatch = (action) => {
-    action$.next(action);
-  };
+    action$.next(action)
+  }
 
-  return [state$, dispatch];
-};
+  return [state$, dispatch]
+}
 
-export const withMiddleware = <S>(reducer: Reducer<S>, init: S, ...middlewares: Middleware<S>[]) => {
-  const [s$, d] = createStore(reducer, init);
+export const withMiddleware = <S>(reducer: Reducer<S>, init: S) => (...middlewares: Array<Middleware<S>>): UseStore<S> => {
+  const [s$, d] = createStore(reducer, init)
 
   if (!Array.isArray(middlewares) || middlewares.length === 0) {
-    return [s$, d];
+    return [s$, d]
   }
 
   // Some trickery to make every middleware call to 'dispatch'
   // go through the whole middleware chain again
   let dispatch: Dispatch = (_msg) => {
     throw new Error(
-      "Dispatching while constructing your middleware is not allowed. " +
-        "Other middleware would not be applied to this dispatch."
-    );
-  };
+      'Dispatching while constructing your middleware is not allowed. ' +
+        'Other middleware would not be applied to this dispatch.',
+    )
+  }
 
-  const get = <S>(state$: Observable<S>) => {
-    let val: S;
+  const get = (state$: Observable<S>): (() => S) => {
+    let val: S
     state$.subscribe((v: S) => {
-      val = v;
-    });
-    return (): S => val;
-  };
+      val = v
+    })
+    return () => val
+  }
 
   const middlewareAPI: MiddlewareAPI<S> = {
-    getState: get<S>(s$),
-    dispatch: (msg) => dispatch(msg)
-  };
+    getState: get(s$),
+    dispatch: (msg) => dispatch(msg),
+  }
 
   dispatch = middlewares
     .map((middleware) => middleware(middlewareAPI))
-    .reduce((next, middleware) => middleware(next), d);
+    .reduce((next, middleware) => middleware(next), d)
 
-  return [s$, dispatch];
-};
+  return [s$, dispatch]
+}
 
-export const provideStore = <S>(store: [Observable<S>, Dispatch]) => {
-  setContext(MODELKEY, store);
-};
+export const provideStore = <S>(store: UseStore<S>): void => {
+  setContext(MODELKEY, store)
+}
 
-export const useStore = <S>(): [Observable<S>, Dispatch] => {
-  const store = getContext(MODELKEY);
+export const useStore = <S>(): UseStore<S> => {
+  const store = getContext<UseStore<S>>(MODELKEY)
 
   if (store == null) {
     throw new Error(
-      "Context not found. Please ensure you provide the store using the `provideStore` function or the `ProvideStore` component."
-    );
+      'Context not found. Please ensure you provide the store using the `provideStore` function or the `ProvideStore` component.',
+    )
   }
 
-  return store;
-};
+  return store
+}
 
 const prinf = <S>(prev: S, tag: string, next: S): void => {
   console.group(tag, '@' + new Date().toISOString())

@@ -17,6 +17,7 @@ specifiers:
   np: ^7.5.0
   rimraf: ^3.0.2
   rxjs: ^6
+  svelte: ^3.41.0
   terser: ^5.6.0
   ts-jest: ^26.5.2
   ts-node: ^9.1.1
@@ -24,6 +25,7 @@ specifiers:
 
 dependencies:
   rxjs: 6.6.7
+  svelte: 3.41.0
 
 devDependencies:
   '@types/jest': 26.0.20
@@ -5843,6 +5845,11 @@ packages:
       has-flag: 4.0.0
       supports-color: 7.2.0
     dev: true
+
+  /svelte/3.41.0:
+    resolution: {integrity: sha512-X9/lnTcRBCrMdyFBVjfmqy1T2vyN8ejUE1OfbWSccc2Z42Amn3ab3XdBgVl+oDkZvzPfPMoxo6CEbWca7pXOew==}
+    engines: {node: '>= 8'}
+    dev: false
 
   /symbol-observable/1.2.0:
     resolution: {integrity: sha512-e900nM8RRtGhlV36KGEU9k65K3mPb1WV70OdjfxlG2EAuM1noi/E/BaW/uMhL7bPEssK8QV57vN3esixjUvcXQ==}
