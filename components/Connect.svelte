@@ -1,7 +1,7 @@
 <script>
   import { combineLatest } from "rxjs";
   import { map, mapTo, distinctUntilChanged } from "rxjs/operators";
-  import { useStore } from "../index";
+  import { useStore } from "../dist";
 
   // { todos: state => state.todos }
   export let selectors = {};

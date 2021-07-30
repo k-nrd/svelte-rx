@@ -1,5 +1,5 @@
 <script>
-  import { provideStore } from "../index";
+  import { provideStore } from "../dist";
 
   export let store;
 
