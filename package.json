@@ -12,7 +12,6 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "svelte": "components/index.js",
   "scripts": {
     "build": "pnpm run compile && terser --compress --mangle -o dist/index.js -- dist/index.js",
     "compile": "rimraf ./dist && tsc --project tsconfig.prod.json --skipLibCheck",
