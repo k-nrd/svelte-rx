@@ -1,5 +1,5 @@
 {
-  "name": "@yungas/svelte-rxflux",
+  "name": "@yungas/svelte-rx",
   "publishConfig": {
     "access": "public"
   },
