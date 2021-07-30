@@ -1,7 +1,7 @@
 {
-  "name": "@yungas/svelte-tea",
-  "version": "0.3.2",
-  "description": "TEA-like pattern for svelte.",
+  "name": "@yungas/svelte-rxflux",
+  "version": "0.1.0",
+  "description": "A flux-like store for Svelte based on RxJS Observables.",
   "files": [
     "dist"
   ],
