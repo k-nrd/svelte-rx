@@ -1,4 +1,4 @@
-### svelte rxflux
+### Svelte rxflux
 
 Flux-like state management for Svelte, based on RxJS Observables.
 
