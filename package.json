@@ -10,7 +10,7 @@
   ],
   "module": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "svelte": "src/components",
+  "svelte": "dist/components/index.js",
   "scripts": {
     "build": "pnpm run compile && terser --compress --mangle -o dist/index.js -- dist/index.js && cpy './src/components/*.svelte' './dist/components/'",
     "compile": "rimraf ./dist && tsc --project tsconfig.prod.json --skipLibCheck",
