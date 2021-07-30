@@ -1,10 +1,6 @@
-### Svelte TEA
+### Svelte-Rxflux
 
-A set of functions that provide TEA-style¹ state management using Svelte stores.
+Flux-like state management for Svelte, based on RxJS Observables.
 
 #### Example
-[demo](https://svelte.dev/repl/fdffcf2e69324426bc7015101b080d53?version=3.35.0)
-
----
-
-¹: where TEA = The Elm Architecture
+[demo](https://codesandbox.io/s/svelte-rxflux-redux-observable-riq5h?file=/App.svelte)
