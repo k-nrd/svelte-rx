@@ -6,14 +6,15 @@
   "version": "0.1.5",
   "description": "A redux-like store for Svelte based on RxJS Observables.",
   "files": [
-    "dist"
+    "dist",
+    "components"
   ],
   "main": "dist/index.js",
   "module": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "svelte": "dist/components/index.js",
+  "svelte": "components/index.js",
   "scripts": {
-    "build": "pnpm run compile && terser --compress --mangle -o dist/index.js -- dist/index.js && cpy './src/components/*.svelte' './dist/components/'",
+    "build": "pnpm run compile && terser --compress --mangle -o dist/index.js -- dist/index.js && cpy './src/components/*.svelte' './components/' && cpy './dist/components/index.*' './components/'",
     "compile": "rimraf ./dist && tsc --project tsconfig.prod.json --skipLibCheck",
     "start:dev": "nodemon",
     "start": "pnpm run build && node dist/index.js",
