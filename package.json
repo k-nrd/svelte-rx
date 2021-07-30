@@ -1,10 +1,10 @@
 {
-  "name": "@yungas/svelte-rxflux",
+  "name": "@yungas/svelte-rx",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.1.3",
-  "description": "A flux-like store for Svelte based on RxJS Observables.",
+  "description": "A redux-like store for Svelte based on RxJS Observables.",
   "files": [
     "dist"
   ],
