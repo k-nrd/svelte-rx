@@ -1,6 +1,6 @@
-import type { Observable } from 'rxjs'
-import { of, Subject, isObservable } from 'rxjs'
-import { switchMap, scan, distinctUntilChanged, startWith } from 'rxjs/operators'
+import { BehaviorSubject, Observable, of, Subject, isObservable } from 'rxjs'
+
+import { switchMap, scan, distinctUntilChanged, multicast, refCount } from 'rxjs/operators'
 import { getContext, setContext } from 'svelte'
 
 /* Types */
@@ -31,22 +31,24 @@ const MODELKEY = typeof Symbol !== 'undefined'
 
 /* API */
 export const createStore = <S>(reducer: Reducer<S>, init: S): UseStore<S> => {
-  const action$ = new Subject<Action>()
-
   const intoObservable = (action: ActionReceived): Observable<Action> =>
     isObservable(action)
       ? action
       : of(action)
 
-  const state$ = action$.pipe(
+  const stateSubject = new BehaviorSubject<S>(init)
+  const actionSubject = new Subject<ActionReceived>()
+
+  const state$ = actionSubject.pipe(
     switchMap(intoObservable),
     scan(reducer, init),
-    startWith(init),
     distinctUntilChanged(),
+    multicast(stateSubject),
+    refCount(),
   )
 
-  const dispatch: Dispatch = (action) => {
-    action$.next(action)
+  const dispatch = (action: ActionReceived): void => {
+    actionSubject.next(action)
   }
 
   return [state$, dispatch]
@@ -61,7 +63,7 @@ export const withMiddleware = <S>(reducer: Reducer<S>, init: S) => (...middlewar
 
   // Some trickery to make every middleware call to 'dispatch'
   // go through the whole middleware chain again
-  let dispatch: Dispatch = (_msg) => {
+  let dispatch: Dispatch = (_action) => {
     throw new Error(
       'Dispatching while constructing your middleware is not allowed. ' +
         'Other middleware would not be applied to this dispatch.',
@@ -78,7 +80,7 @@ export const withMiddleware = <S>(reducer: Reducer<S>, init: S) => (...middlewar
 
   const middlewareAPI: MiddlewareAPI<S> = {
     getState: get(s$),
-    dispatch: (msg) => dispatch(msg),
+    dispatch: (action) => dispatch(action),
   }
 
   dispatch = middlewares
