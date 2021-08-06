@@ -1,5 +1,5 @@
 import { BehaviorSubject, Observable, of, Subject, isObservable } from 'rxjs'
-import { switchMap, scan, distinctUntilChanged, multicast, refCount } from 'rxjs/operators'
+import { switchMap, scan, distinctUntilChanged, multicast } from 'rxjs/operators'
 import { getContext, setContext } from 'svelte'
 
 /* Types */
@@ -43,7 +43,6 @@ export const createStore = <S>(reducer: Reducer<S>, init: S): UseStore<S> => {
     scan(reducer, init),
     distinctUntilChanged(),
     multicast(stateSubject),
-    refCount(),
   )
 
   const dispatch = (action: ActionReceived): void => {
