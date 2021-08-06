@@ -43,7 +43,7 @@ export const createStore = <S>(reducer: Reducer<S>, init: S): UseStore<S> => {
     scan(reducer, init),
     distinctUntilChanged(),
     multicast(stateSubject),
-    refCount()
+    refCount(),
   )
 
   const dispatch = (action: ActionReceived): void => {
