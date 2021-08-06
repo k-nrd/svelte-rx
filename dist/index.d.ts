@@ -1,4 +1,4 @@
-import type { Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 export interface Action {
     readonly type: string;
     readonly payload: unknown;
