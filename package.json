@@ -63,7 +63,7 @@
     "typescript": "^4.2.2"
   },
   "dependencies": {
-    "rxjs": "^6",
+    "rxjs": "^7",
     "svelte": "^3.41.0"
   }
 }

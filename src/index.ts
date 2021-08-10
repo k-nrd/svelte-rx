@@ -1,5 +1,6 @@
-import { BehaviorSubject, Observable, of, Subject, isObservable } from 'rxjs'
-import { switchMap, scan, distinctUntilChanged, multicast } from 'rxjs/operators'
+import type { Observable } from 'rxjs'
+import { BehaviorSubject, Subject } from 'rxjs'
+import { scan, distinctUntilChanged, share } from 'rxjs/operators'
 import { getContext, setContext } from 'svelte'
 
 /* Types */
@@ -13,8 +14,6 @@ export type Dispatch = (action: Action) => void
 export type Reducer<State> = (state: State, action: Action) => State
 
 export type UseStore<State> = [Observable<State>, Dispatch]
-
-export type ActionReceived = Observable<Action> | Action
 
 export interface MiddlewareAPI<State> {
   getState: () => State
@@ -30,23 +29,16 @@ const MODELKEY = typeof Symbol !== 'undefined'
 
 /* API */
 export const createStore = <S>(reducer: Reducer<S>, init: S): UseStore<S> => {
-  const intoObservable = (action: ActionReceived): Observable<Action> =>
-    isObservable(action)
-      ? action
-      : of(action)
+  const action$ = new Subject<Action>()
 
-  const stateSubject = new BehaviorSubject<S>(init)
-  const actionSubject = new Subject<ActionReceived>()
-
-  const state$ = actionSubject.pipe(
-    switchMap(intoObservable),
+  const state$ = action$.pipe(
     scan(reducer, init),
     distinctUntilChanged(),
-    multicast(stateSubject),
+    share({ connector: () => new BehaviorSubject<S>(init) }),
   )
 
-  const dispatch = (action: ActionReceived): void => {
-    actionSubject.next(action)
+  const dispatch = (action: Action): void => {
+    action$.next(action)
   }
 
   return [state$, dispatch]
@@ -68,7 +60,7 @@ export const withMiddleware = <S>(reducer: Reducer<S>, init: S) => (...middlewar
     )
   }
 
-  const get = (state$: Observable<S>): (() => S) => {
+  const getState = (state$: Observable<S>): (() => S) => {
     let val: S
     state$.subscribe((v: S) => {
       val = v
@@ -77,7 +69,7 @@ export const withMiddleware = <S>(reducer: Reducer<S>, init: S) => (...middlewar
   }
 
   const middlewareAPI: MiddlewareAPI<S> = {
-    getState: get(s$),
+    getState: getState(s$),
     dispatch: (action) => dispatch(action),
   }
 

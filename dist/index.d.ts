@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 export interface Action {
     readonly type: string;
     readonly payload: unknown;
@@ -6,7 +6,6 @@ export interface Action {
 export declare type Dispatch = (action: Action) => void;
 export declare type Reducer<State> = (state: State, action: Action) => State;
 export declare type UseStore<State> = [Observable<State>, Dispatch];
-export declare type ActionReceived = Observable<Action> | Action;
 export interface MiddlewareAPI<State> {
     getState: () => State;
     dispatch: Dispatch;
